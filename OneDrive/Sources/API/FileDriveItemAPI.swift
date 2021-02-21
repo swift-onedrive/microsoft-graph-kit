@@ -26,7 +26,10 @@ public protocol FileDriveItemAPI {
     /// 搜索
     func searchDriveItem(userID: String?, queryParameters: [String: String]?) -> EventLoopFuture<FileDriveItemSearchModel>
     
-    /// 默认公共文件夹
+    /// 下载文件
+    func downloadDriveItem(userID: String?, itemId: String) -> EventLoopFuture<FileDriveItemModel>
+    
+    /// 创建默认公共文件夹
     func createDriveFolder(userID: String?, parentItemId: String?, name: String) -> EventLoopFuture<FileDriveItemModel>
     
     // MARK: upload
@@ -64,6 +67,9 @@ extension FileDriveItemAPI {
     }
     public func searchDriveItem(userID: String? = nil, queryParameters: [String: String]?) -> EventLoopFuture<FileDriveItemSearchModel> {
         return searchDriveItem(userID: userID, queryParameters: queryParameters)
+    }
+    public func downloadDriveItem(userID: String? = nil, itemId: String) -> EventLoopFuture<FileDriveItemModel> {
+        return downloadDriveItem(userID: userID, itemId: itemId)
     }
     public func createDriveFolder(userID: String? = nil, parentItemId: String? = nil, name: String) -> EventLoopFuture<FileDriveItemModel> {
         return createDriveFolder(userID: userID, parentItemId: parentItemId, name: name)
@@ -130,6 +136,11 @@ extension MsGraphFileDriveItemAPI {
             query = ""
         }
         return request.send(method: .GET, path: "\(endpoint)\(gasket)/drive/root/search", query: query)
+    }
+    
+    public func downloadDriveItem(userID: String?, itemId: String) -> EventLoopFuture<FileDriveItemModel> {
+        let gasket = (userID ?? objectID).isEmpty ? "" : "/users/\(userID ?? objectID)"
+        return request.send(method: .GET, path: "\(endpoint)\(gasket)/drive/items/\(itemId)/content")
     }
     
 }
