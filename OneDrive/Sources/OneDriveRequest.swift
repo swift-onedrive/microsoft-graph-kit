@@ -32,7 +32,7 @@ class OneDriveRequest: MsGraphAPIRequest {
         return withToken { token in
             return self._send(method: method, headers: headers, path: path, query: query, body: body, accessToken: token.access_token).flatMap { response in
                 do {
-                    if let info = try? JSONSerialization.jsonObject(with: response, options: .fragmentsAllowed) {
+                    if let info = try? JSONSerialization.jsonObject(with: response, options: .allowFragments) {
                         print("info:\n\(info)")
                     }
                     let model = try self.responseDecoder.decode(MGM.self, from: response)
