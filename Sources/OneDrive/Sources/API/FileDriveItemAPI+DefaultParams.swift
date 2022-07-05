@@ -23,10 +23,10 @@ public extension FileDriveItemAPI {
     ///   - isisUpdate: 是否是更新
     /// - Returns: 上传结果
     func createSimpleUpload<T: DriveFileItemProtocol>(file: T,
-                                                      body: HTTPClient.Body,
+                                                      body: HTTPClientRequest.Body,
                                                       contentType: String,
-                                                      isUpdate: Bool = false) -> EventLoopFuture<DriveItemModel> {
-        createSimpleUpload(file: file, body: body, contentType: contentType, isUpdate: isUpdate)
+                                                      isUpdate: Bool = false) async throws -> DriveItemModel {
+        try await createSimpleUpload(file: file, body: body, contentType: contentType, isUpdate: isUpdate)
     }
     /// 移动项目
     /// - Parameters:
@@ -35,8 +35,8 @@ public extension FileDriveItemAPI {
     ///   - name: 新名字
     /// - Returns: 移动结果
     func moveItem<T: DriveItemProtocol>(from odItem: T,
-                                        parentReferenceId: String, name: String? = nil) -> EventLoopFuture<DriveItemModel> {
-        moveItem(from: odItem, parentReferenceId: parentReferenceId, name: name)
+                                        parentReferenceId: String, name: String? = nil) async throws -> DriveItemModel {
+        try await moveItem(from: odItem, parentReferenceId: parentReferenceId, name: name)
     }
     
     /// 复制项目
@@ -48,7 +48,7 @@ public extension FileDriveItemAPI {
     /// - Returns: 复制结果
     func copyItem<T: DriveItemProtocol>(from odItem: T,
                                         parentReferenceDriveId: String,
-                                        parentReferenceId: String, name: String? = nil) -> EventLoopFuture<DriveItemModel> {
-        copyItem(from: odItem, parentReferenceDriveId: parentReferenceDriveId, parentReferenceId: parentReferenceId, name: name)
+                                        parentReferenceId: String, name: String? = nil) async throws -> DriveItemModel {
+        try await copyItem(from: odItem, parentReferenceDriveId: parentReferenceDriveId, parentReferenceId: parentReferenceId, name: name)
     }
 }

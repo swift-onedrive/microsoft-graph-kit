@@ -13,32 +13,32 @@ import MicrosoftGraphCore
 /// 驱动器
 public protocol FileDriveAPI {
     /// 获取默认驱动器的根文件夹
-    func get(userID: String?) -> EventLoopFuture<FileDriveModel>
-    func getDriveRoot(userID: String?) -> EventLoopFuture<FileDriveModel>
-    func getDriveRootChildren(userID: String?) -> EventLoopFuture<WrapperFileDriveModel>
+    func get(userID: String?) async throws -> FileDriveModel
+    func getDriveRoot(userID: String?) async throws -> FileDriveModel
+    func getDriveRootChildren(userID: String?) async throws -> WrapperFileDriveModel
     
     /// 相对于根的路径
-    func getDrive(userID: String?, releativeToRoot path: String) -> EventLoopFuture<FileDriveModel>
-    func getDriveChildren(userID: String?, releativeToRoot path: String) -> EventLoopFuture<WrapperFileDriveModel>
+    func getDrive(userID: String?, releativeToRoot path: String) async throws -> FileDriveModel
+    func getDriveChildren(userID: String?, releativeToRoot path: String) async throws -> WrapperFileDriveModel
 }
 
 extension FileDriveAPI {
-    public func get(userID: String? = nil) -> EventLoopFuture<FileDriveModel> {
-        return get(userID: userID)
+    public func get(userID: String? = nil) async throws -> FileDriveModel {
+        return try await get(userID: userID)
     }
-    public func getDriveRoot(userID: String? = nil) -> EventLoopFuture<FileDriveModel> {
-        return getDriveRoot(userID: userID)
+    public func getDriveRoot(userID: String? = nil) async throws -> FileDriveModel {
+        return try await getDriveRoot(userID: userID)
     }
-    public func getDriveRootChildren(userID: String? = nil) -> EventLoopFuture<WrapperFileDriveModel> {
-        return getDriveRootChildren(userID: userID)
-    }
-    
-    public func getDrive(userID: String? = nil, releativeToRoot path: String) -> EventLoopFuture<FileDriveModel> {
-        return getDrive(userID: userID, releativeToRoot: path)
+    public func getDriveRootChildren(userID: String? = nil) async throws -> WrapperFileDriveModel {
+        return try await getDriveRootChildren(userID: userID)
     }
     
-    public func getDriveChildren(userID: String? = nil, releativeToRoot path: String) -> EventLoopFuture<WrapperFileDriveModel> {
-        return getDriveChildren(userID: userID, releativeToRoot: path)
+    public func getDrive(userID: String? = nil, releativeToRoot path: String) async throws -> FileDriveModel {
+        return try await getDrive(userID: userID, releativeToRoot: path)
+    }
+    
+    public func getDriveChildren(userID: String? = nil, releativeToRoot path: String) async throws -> WrapperFileDriveModel {
+        return try await getDriveChildren(userID: userID, releativeToRoot: path)
     }
 }
 public final class MsGraphFileDriveAPI: FileDriveAPI {
@@ -55,29 +55,29 @@ public final class MsGraphFileDriveAPI: FileDriveAPI {
 // MARK: GET
 extension MsGraphFileDriveAPI {
     
-    public func get(userID: String?) -> EventLoopFuture<FileDriveModel> {
+    public func get(userID: String?) async throws -> FileDriveModel {
         let gasket = (userID ?? objectID).isEmpty ? "" : "/users/\(userID ?? objectID)"
-        return request.send(method: .GET, path: "\(endpoint)\(gasket)/drive")
+        return try await request.send(method: .GET, path: "\(endpoint)\(gasket)/drive")
     }
     
-    public func getDriveRoot(userID: String?) -> EventLoopFuture<FileDriveModel> {
+    public func getDriveRoot(userID: String?) async throws -> FileDriveModel {
         let gasket = (userID ?? objectID).isEmpty ? "" : "/users/\(userID ?? objectID)"
-        return request.send(method: .GET, path: "\(endpoint)\(gasket)/drive/root")
+        return try await request.send(method: .GET, path: "\(endpoint)\(gasket)/drive/root")
     }
     
-    public func getDriveRootChildren(userID: String?) -> EventLoopFuture<WrapperFileDriveModel> {
+    public func getDriveRootChildren(userID: String?) async throws -> WrapperFileDriveModel {
         let gasket = (userID ?? objectID).isEmpty ? "" : "/users/\(userID ?? objectID)"
-        return request.send(method: .GET, path: "\(endpoint)\(gasket)/drive/root/children")
+        return try await request.send(method: .GET, path: "\(endpoint)\(gasket)/drive/root/children")
     }
     
-    public func getDrive(userID: String?, releativeToRoot path: String) -> EventLoopFuture<FileDriveModel> {
+    public func getDrive(userID: String?, releativeToRoot path: String) async throws -> FileDriveModel {
         let gasket = (userID ?? objectID).isEmpty ? "" : "/users/\(userID ?? objectID)"
-        return request.send(method: .GET, path: "\(endpoint)\(gasket)/drive/root:/\(path)")
+        return try await request.send(method: .GET, path: "\(endpoint)\(gasket)/drive/root:/\(path)")
     }
     
-    public func getDriveChildren(userID: String?, releativeToRoot path: String) -> EventLoopFuture<WrapperFileDriveModel> {
+    public func getDriveChildren(userID: String?, releativeToRoot path: String) async throws -> WrapperFileDriveModel {
         let gasket = (userID ?? objectID).isEmpty ? "" : "/users/\(userID ?? objectID)"
-        return request.send(method: .GET, path: "\(endpoint)\(gasket)/drive/root:/\(path):/children")
+        return try await request.send(method: .GET, path: "\(endpoint)\(gasket)/drive/root:/\(path):/children")
     }
 }
 

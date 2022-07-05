@@ -25,39 +25,39 @@ public protocol FileDriveItemAPI {
     ///
     /// - Parameter file: 项目模型
     /// - Returns: 项目详情
-    func getDriveItem<T: DriveItemProtocol>(file: T) -> EventLoopFuture<DriveItemModel>
+    func getDriveItem<T: DriveItemProtocol>(file: T) async throws -> DriveItemModel
     
     // MARK: delete
     
     /// 删除项目
     /// - Parameter file: 项目模型，key 为 ID
     /// - Returns: 删除详情
-    func deleteDriveItem<T: DriveItemProtocol>(file: T) -> EventLoopFuture<MsGraphOneDriveAPIStatus>
+    func deleteDriveItem<T: DriveItemProtocol>(file: T) async throws -> MsGraphOneDriveAPIStatus
     
     /// 搜索项目
     /// - Parameters:
     ///   - file: 项目模型，必须bucket，key 可空
     ///   - queryParameters: 搜索参数
     /// - Returns: 搜索结果
-    func searchDriveItem(bucket: DriveBucket, queryParameters: [String: String]?) -> EventLoopFuture<FileDriveItemSearchModel>
+    func searchDriveItem(bucket: DriveBucket, queryParameters: [String: String]?) async throws -> FileDriveItemSearchModel
     
     /// 下载项目文件
     /// - Parameter file: 项目模型， key 为 ID
     /// - Returns: 文件详情
-    func downloadDriveItem<T: DriveFileItemProtocol>(file: T) -> EventLoopFuture<DriveItemModel>
+    func downloadDriveItem<T: DriveFileItemProtocol>(file: T) async throws -> DriveItemModel
     
     /// 创建文件夹
     /// - Parameters:
     ///   - folder: 文件夹, key eg: root 、 items/{parent-item-id}
     ///   - name: 文件夹名
     /// - Returns: 文件夹信息
-    func createDriveFolder<T: DriveFolderItemProtocol>(folder: T, name: String) -> EventLoopFuture<DriveItemModel>
+    func createDriveFolder<T: DriveFolderItemProtocol>(folder: T, name: String) async throws -> DriveItemModel
     
     // MARK: upload
     /// 简单上传最大 4M
-    /// 
+    ///
     /// 新建 `root:/test/haha/a.jpg:`，替换 `items/{item-id}`
-    /// 
+    ///
     /// - Parameters:
     ///   - file: 文件
     ///   - body: 内容
@@ -66,28 +66,28 @@ public protocol FileDriveItemAPI {
     ///   - isisUpdate: 是否是更新
     /// - Returns: 上传结果
     func createSimpleUpload<T: DriveFileItemProtocol>(file: T,
-                                                      body: HTTPClient.Body,
+                                                      body: HTTPClientRequest.Body,
                                                       contentType: String,
-                                                      isUpdate: Bool) -> EventLoopFuture<DriveItemModel>
+                                                      isUpdate: Bool) async throws -> DriveItemModel
     
     /// 创建大文件
     ///
     /// [大文件上传文档](https://docs.microsoft.com/zh-cn/graph/api/driveitem-createuploadsession?view=graph-rest-1.0)
-    /// 
+    ///
     /// - Parameters:
     ///   - file: 文件项目
     ///   - fileUrl: 本地文件
     /// - Returns: 上传结果
-    func createLargeFileUploadSession<T: DriveFileItemProtocol>(file: T, fileUrl: URL) -> EventLoopFuture<LargeFileSessionResponse>
+    func createLargeFileUploadSession<T: DriveFileItemProtocol>(file: T, fileUrl: URL) async throws -> LargeFileSessionResponse
     
     /// 开始上传块
-    func startLargeFileChunk(file path: String, uploadUrlString: String) -> EventLoopFuture<DriveItemModel>
+    func startLargeFileChunk(file path: String, uploadUrlString: String) async throws -> DriveItemModel
     
     /// 续传块
-    func resumeLargeFileChunk(file path: String, uploadUrlString: String) -> EventLoopFuture<DriveItemModel>
+    func resumeLargeFileChunk(file path: String, uploadUrlString: String) async throws -> DriveItemModel
     
     /// 取消块
-    func cancelLargeFileChunk(uploadUrlString: String) -> EventLoopFuture<MsGraphOneDriveAPIStatus>
+    func cancelLargeFileChunk(uploadUrlString: String) async throws -> MsGraphOneDriveAPIStatus
     
     
     /// 本地文件上传
@@ -96,7 +96,7 @@ public protocol FileDriveItemAPI {
     ///   - odFile: 远端文件路径
     ///   - progress: 进度
     /// - Returns: 上传结果
-    func copy<T: DriveFileItemProtocol>(from path: String, to odFile: T, progress: @escaping (Double) throws -> Void) -> EventLoopFuture<DriveItemModel>
+    func copy<T: DriveFileItemProtocol>(from path: String, to odFile: T, progress: @escaping (Double) throws -> Void) async throws -> DriveItemModel
     
     
     /// 本地文件夹上传
@@ -104,7 +104,7 @@ public protocol FileDriveItemAPI {
     ///   - folder: 本地文件夹路径
     ///   - odFolder: 远端文件夹路径
     /// - Returns: 上传结果
-    func copyFolder<U: DriveFolderItemProtocol>(from folder: String, to odFolder: U) -> EventLoopFuture<Void>
+    func copyFolder<U: DriveFolderItemProtocol>(from folder: String, to odFolder: U) async throws -> Void
     
     /// 移动项目
     /// - Parameters:
@@ -113,7 +113,7 @@ public protocol FileDriveItemAPI {
     ///   - name: 新名字
     /// - Returns: 移动结果
     func moveItem<T: DriveItemProtocol>(from odItem: T,
-                                        parentReferenceId: String, name: String?) -> EventLoopFuture<DriveItemModel>
+                                        parentReferenceId: String, name: String?) async throws -> DriveItemModel
     
     /// 复制项目
     /// - Parameters:
@@ -124,8 +124,8 @@ public protocol FileDriveItemAPI {
     /// - Returns: 复制结果
     func copyItem<T: DriveItemProtocol>(from odItem: T,
                                         parentReferenceDriveId: String,
-                                        parentReferenceId: String, name: String?) -> EventLoopFuture<DriveItemModel>
-
+                                        parentReferenceId: String, name: String?) async throws -> DriveItemModel
+    
 }
 
 public
@@ -146,7 +146,7 @@ public class MsGraphFileDriveItemAPI: FileDriveItemAPI {
     let request: OneDriveRequest
     let objectID: String
     let configuration: MsGraphOneDriveConfig
-        
+    
     /// Thread pool used by transfer manager
     public let threadPool: NIOThreadPool
     
@@ -168,22 +168,18 @@ extension MsGraphFileDriveItemAPI {
     ///   - name: 新名字
     /// - Returns: 复制结果
     public func copyItem<T: DriveItemProtocol>(from odItem: T,
-                                        parentReferenceDriveId: String,
-                                        parentReferenceId: String, name: String?) -> EventLoopFuture<DriveItemModel> {
+                                               parentReferenceDriveId: String,
+                                               parentReferenceId: String, name: String?) async throws -> DriveItemModel {
         let driveBucket = odItem.bucket
         let driveKey = odItem.key
         let reqPath: String = "\(endpoint)/\(driveBucket)/\(driveKey)"
-        do {
-            var body: [String: Any] = [:]
-            body["parentReference"] = ["id": parentReferenceId, "driveId": parentReferenceDriveId]
-            if let name = name {
-                body["name"] = name
-            }
-            let requestBody = try JSONSerialization.data(withJSONObject: body)
-            return request.send(method: .PATCH, path: reqPath, body: .data(requestBody))
-        } catch {
-            return request.eventLoop.makeFailedFuture(error)
+        var body: [String: Any] = [:]
+        body["parentReference"] = ["id": parentReferenceId, "driveId": parentReferenceDriveId]
+        if let name = name {
+            body["name"] = name
         }
+        let requestBody = try JSONSerialization.data(withJSONObject: body)
+        return try await request.send(method: .PATCH, path: reqPath, body: .bytes(.init(data: requestBody)))
     }
     /// 移动项目
     /// - Parameters:
@@ -193,21 +189,17 @@ extension MsGraphFileDriveItemAPI {
     /// - Returns: 移动结果
     public func moveItem<T: DriveItemProtocol>(from odItem: T,
                                                parentReferenceId: String,
-                                               name: String?) -> EventLoopFuture<DriveItemModel> {
+                                               name: String?) async throws -> DriveItemModel {
         let driveBucket = odItem.bucket
         let driveKey = odItem.key
         let reqPath: String = "\(endpoint)/\(driveBucket)/\(driveKey)"
-        do {
-            var body: [String: Any] = [:]
-            body["parentReference"] = ["id": "\(parentReferenceId)"]
-            if let name = name {
-                body["name"] = name
-            }
-            let requestBody = try JSONSerialization.data(withJSONObject: body)
-            return request.send(method: .PATCH, path: reqPath, body: .data(requestBody))
-        } catch {
-            return request.eventLoop.makeFailedFuture(error)
+        var body: [String: Any] = [:]
+        body["parentReference"] = ["id": "\(parentReferenceId)"]
+        if let name = name {
+            body["name"] = name
         }
+        let requestBody = try JSONSerialization.data(withJSONObject: body)
+        return try await request.send(method: .PATCH, path: reqPath, body: .bytes(.init(data: requestBody)))
     }
     
     /// 本地文件上传
@@ -216,28 +208,21 @@ extension MsGraphFileDriveItemAPI {
     ///   - odFile: 远端文件路径
     ///   - progress: 进度
     /// - Returns: 上传结果
-    public func copy<T: DriveFileItemProtocol>(from path: String, to odFile: T, progress: @escaping (Double) throws -> Void) -> EventLoopFuture<DriveItemModel> {
+    public func copy<T: DriveFileItemProtocol>(from path: String, to odFile: T, progress: @escaping (Double) throws -> Void) async throws -> DriveItemModel {
         let driveBucket = odFile.bucket
         let driveKey = odFile.key
         let reqPath: String = "\(endpoint)/\(driveBucket)/\(driveKey)/createUploadSession".urlEncoded()
-        do {
-            var body: [String: Any] = ["@microsoft.graph.conflictBehavior": "fail (default) | replace | rename"]
-            body["deferCommit"] = true
-            
-            let attributes = try FileManager.default.attributesOfItem(atPath: path)
-            guard let number = attributes[.size] as? Int else {
-                fatalError("fetch file size error")
-            }
-            body["size"] = number
-            let requestBody = try JSONSerialization.data(withJSONObject: body)
-            let result:EventLoopFuture<LargeFileSessionResponse> = request.send(method: .POST, path: reqPath, body: .data(requestBody))
-            return result.flatMap { (response) -> EventLoopFuture<DriveItemModel> in
-                    return self.startLargeFileChunk(file: path, uploadUrlString: response.uploadUrl)
-                }
-        } catch {
-            return request.eventLoop.makeFailedFuture(error)
+        var body: [String: Any] = ["@microsoft.graph.conflictBehavior": "fail (default) | replace | rename"]
+        body["deferCommit"] = true
+        
+        let attributes = try FileManager.default.attributesOfItem(atPath: path)
+        guard let number = attributes[.size] as? Int else {
+            fatalError("fetch file size error")
         }
-
+        body["size"] = number
+        let requestBody = try JSONSerialization.data(withJSONObject: body)
+        let result:LargeFileSessionResponse = try await request.send(method: .POST, path: reqPath, body: .bytes(.init(data: requestBody)))
+        return try await self.startLargeFileChunk(file: path, uploadUrlString: result.uploadUrl)
     }
     
     
@@ -246,25 +231,26 @@ extension MsGraphFileDriveItemAPI {
     ///   - folder: 本地文件夹路径
     ///   - odFolder: 远端文件夹路径
     /// - Returns: 上传结果
-    public func copyFolder<U: DriveFolderItemProtocol>(from folder: String, to odFolder: U) -> EventLoopFuture<Void> {
+    public func copyFolder<U: DriveFolderItemProtocol>(from folder: String, to odFolder: U) async throws -> Void {
         let eventLoop = self.request.eventLoop
-        return listFiles(in: folder)
+        return try await listFiles(in: folder)
             .flatMap { (files) in
                 let taskQueue = TaskQueue<Void>(maxConcurrentTasks: self.configuration.maxConcurrentTasks, on: eventLoop)
                 let transfers = Self.targetFiles(files: files, from: folder, to: odFolder)
                 transfers.forEach { transfer in
                     taskQueue.submitTask {
                         // 单文件上传
-                        self.copy(from: transfer.from.name, to: transfer.to) { progress in
-                            
+                        let promise = eventLoop.makePromise(of: DriveItemModel.self)
+                        promise.completeWithTask {
+                            try await self.copy(from: transfer.from.name, to: transfer.to) { progress in }
                         }
-                        .map { _ in () }
+                        return promise.futureResult.map { _ in }
                     }
                 }
                 return self.complete(taskQueue: taskQueue)
-            }
+            }.get()
     }
-        
+    
     /// Wait on all tasks succeeding. If there is an error the operation will either continue or cancel depending on `Configuration.cancelOnError`
     func complete<T>(taskQueue: TaskQueue<T>) -> EventLoopFuture<Void> {
         taskQueue.andAllSucceed()
@@ -317,11 +303,11 @@ extension MsGraphFileDriveItemAPI {
 // MARK: GET
 extension MsGraphFileDriveItemAPI {
     
-    public func getDriveItem<T: DriveItemProtocol>(file: T) -> EventLoopFuture<DriveItemModel> {
+    public func getDriveItem<T: DriveItemProtocol>(file: T) async throws -> DriveItemModel {
         let driveBucket = file.bucket
         let driveKey = file.key
         let reqPath: String = "\(endpoint)/\(driveBucket)/\(driveKey)"
-        return request.send(method: .GET, path: reqPath)
+        return try await request.send(method: .GET, path: reqPath)
     }
     
     /// 搜索项目
@@ -329,7 +315,7 @@ extension MsGraphFileDriveItemAPI {
     ///   - 项目模型，必须bucket
     ///   - queryParameters: 搜索参数 search_text
     /// - Returns: 搜索结果
-    public func searchDriveItem(bucket: DriveBucket, queryParameters: [String : String]?) -> EventLoopFuture<FileDriveItemSearchModel> {
+    public func searchDriveItem(bucket: DriveBucket, queryParameters: [String : String]?) async throws -> FileDriveItemSearchModel {
         let driveBucket = bucket
         var query = ""
         if let queryParameters = queryParameters {
@@ -339,17 +325,17 @@ extension MsGraphFileDriveItemAPI {
                 query = queryParameters.queryParameters
             }
         }
-        return request.send(method: .GET, path: "\(endpoint)/\(driveBucket)/root/search(q='\(query)')")
+        return try await request.send(method: .GET, path: "\(endpoint)/\(driveBucket)/root/search(q='\(query)')")
     }
     
     /// 下载项目文件
     /// - Parameter file: 项目模型， key 为 ID
     /// - Returns: 文件详情
-    public func downloadDriveItem<T: DriveFileItemProtocol>(file: T) -> EventLoopFuture<DriveItemModel> {
+    public func downloadDriveItem<T: DriveFileItemProtocol>(file: T) async throws -> DriveItemModel {
         let driveBucket = file.bucket
         let driveKey = file.key
         let reqPath: String = "\(endpoint)/\(driveBucket)/\(driveKey)/content"
-        return request.send(method: .GET, path: reqPath)
+        return try await request.send(method: .GET, path: reqPath)
     }
     
 }
@@ -360,17 +346,13 @@ extension MsGraphFileDriveItemAPI {
     ///   - folder: 文件夹, key eg: root 、 items/{parent-item-id}
     ///   - name: 文件夹名
     /// - Returns: 文件夹信息
-    public func createDriveFolder<T: DriveFolderItemProtocol>(folder: T, name: String) -> EventLoopFuture<DriveItemModel> {
+    public func createDriveFolder<T: DriveFolderItemProtocol>(folder: T, name: String) async throws -> DriveItemModel {
         let driveBucket = folder.bucket
         let driveKey = folder.key
         let reqPath: String = "\(endpoint)/\(driveBucket)/\(driveKey)/children"
-        do {
-            let body: [String: Any] = ["name": name, "folder": [:], "@microsoft.graph.conflictBehavior": "rename"]
-            let requestBody = try JSONSerialization.data(withJSONObject: body)
-            return request.send(method: .POST, path: reqPath, body: .data(requestBody))
-        } catch {
-            return request.eventLoop.makeFailedFuture(error)
-        }
+        let body: [String: Any] = ["name": name, "folder": [:], "@microsoft.graph.conflictBehavior": "rename"]
+        let requestBody = try JSONSerialization.data(withJSONObject: body)
+        return try await request.send(method: .POST, path: reqPath, body: .bytes(.init(data: requestBody)))
     }
 }
 
@@ -379,18 +361,18 @@ extension MsGraphFileDriveItemAPI {
     /// 删除项目
     /// - Parameter file: 项目模型，key 为 ID
     /// - Returns: 删除详情
-    public func deleteDriveItem<T: DriveItemProtocol>(file: T) -> EventLoopFuture<MsGraphOneDriveAPIStatus> {
+    public func deleteDriveItem<T: DriveItemProtocol>(file: T) async throws -> MsGraphOneDriveAPIStatus {
         let driveBucket = file.bucket
         let driveKey = file.key
         let reqPath: String = "\(endpoint)/\(driveBucket)/\(driveKey)"
-        return request.send(method: .DELETE, path: reqPath)
+        return try await request.send(method: .DELETE, path: reqPath)
     }
 }
 
 public struct FileDriveItemSearchModel: MicrosoftAzureModel {
     let odataContext: String
     public let value: [FileDriveModel]
-
+    
     enum CodingKeys: String, CodingKey {
         case odataContext = "@odata.context"
         case value
@@ -412,18 +394,18 @@ extension MsGraphFileDriveItemAPI {
     ///   - isisUpdate: 是否是更新
     /// - Returns: 上传结果
     public func createSimpleUpload<T: DriveFileItemProtocol>(file: T,
-                                                      body: HTTPClient.Body,
-                                                      contentType: String,
-                                                      isUpdate: Bool) -> EventLoopFuture<DriveItemModel> {
+                                                             body: HTTPClientRequest.Body,
+                                                             contentType: String,
+                                                             isUpdate: Bool) async throws -> DriveItemModel {
         let driveBucket = file.bucket
         let driveKey = file.key
         let reqPath: String = isUpdate ? "\(endpoint)/\(driveBucket)/\(driveKey)/content" : "\(endpoint)/\(driveBucket)/\(driveKey)/content"
         
         var headers: HTTPHeaders = [:]
         headers.add(name: "Content-Type", value: contentType)
-        return request.send(method: .PUT, headers: headers, path: reqPath, body: body)
+        return try await request.send(method: .PUT, headers: headers, path: reqPath, body: body)
     }
-        
+    
     /// 创建大文件
     ///
     /// [大文件上传文档](https://docs.microsoft.com/zh-cn/graph/api/driveitem-createuploadsession?view=graph-rest-1.0) `root:/\(folder)/\(name):`
@@ -432,56 +414,75 @@ extension MsGraphFileDriveItemAPI {
     ///   - file: 文件项目
     ///   - fileUrl: 本地文件
     /// - Returns: 上传结果
-    public func createLargeFileUploadSession<T: DriveFileItemProtocol>(file: T, fileUrl: URL) -> EventLoopFuture<LargeFileSessionResponse> {
+    public func createLargeFileUploadSession<T: DriveFileItemProtocol>(file: T, fileUrl: URL) async throws -> LargeFileSessionResponse {
         let driveBucket = file.bucket
         let driveKey = file.key
         let reqPath: String = "\(endpoint)/\(driveBucket)/\(driveKey)/createUploadSession".urlEncoded()
-        do {
-            var body: [String: Any] = ["@microsoft.graph.conflictBehavior": "fail (default) | replace | rename"]
-            body["deferCommit"] = true
-            
-            let attributes = try FileManager.default.attributesOfItem(atPath: fileUrl.relativePath)
-            guard let number = attributes[.size] as? Int else {
-                fatalError("fetch file size error")
-            }
-            body["size"] = number
-            let requestBody = try JSONSerialization.data(withJSONObject: body)
-            let result:EventLoopFuture<LargeFileSessionResponse> = request.send(method: .POST, path: reqPath, body: .data(requestBody))
-            return result
-        } catch {
-            return request.eventLoop.makeFailedFuture(error)
+        var body: [String: Any] = ["@microsoft.graph.conflictBehavior": "fail (default) | replace | rename"]
+        body["deferCommit"] = true
+        
+        let attributes = try FileManager.default.attributesOfItem(atPath: fileUrl.relativePath)
+        guard let number = attributes[.size] as? Int else {
+            fatalError("fetch file size error")
         }
+        body["size"] = number
+        let requestBody = try JSONSerialization.data(withJSONObject: body)
+        let result:LargeFileSessionResponse = try await request.send(method: .POST, path: reqPath, body: .bytes(.init(data: requestBody)))
+        return result
     }
     
     /// 开始上传
-    public func startLargeFileChunk(file path: String, uploadUrlString: String) -> EventLoopFuture<DriveItemModel> {
+    public func startLargeFileChunk(file path: String, uploadUrlString: String) async throws -> DriveItemModel {
         /// 这里进行循环上传
-        do {
-            guard let file = FileHandle(forReadingAtPath: path) else {
-                fatalError("read file error")
-            }
-            
-            let attributes = try FileManager.default.attributesOfItem(atPath: path)
-            guard let number = attributes[.size] as? Int else {
-                fatalError("fetch file size error")
-            }
-            guard let uploadUrl =  URL(string: uploadUrlString) else {
-                fatalError("upload url error")
-            }
-            let queue = DispatchQueue.init(label: "Serial queue")
-            let promise = self.request.eventLoop.makePromise(of: Void.self)
-            
-            queue.async {
-                var length = 0
-                repeat {
-                    #if os(Linux)
+        guard let file = FileHandle(forReadingAtPath: path) else {
+            fatalError("read file error")
+        }
+        
+        let attributes = try FileManager.default.attributesOfItem(atPath: path)
+        guard let number = attributes[.size] as? Int else {
+            fatalError("fetch file size error")
+        }
+        guard let uploadUrl =  URL(string: uploadUrlString) else {
+            fatalError("upload url error")
+        }
+        let queue = DispatchQueue.init(label: "Serial queue")
+        let promise = self.request.eventLoop.makePromise(of: Void.self)
+        
+        queue.async {
+            var length = 0
+            repeat {
+#if os(Linux)
+                let offSet: Int = Int(file.offsetInFile)
+                let data = file.readData(ofLength: self.configuration.multipartPartSize)
+                length = data.count
+                
+                if length > 0 {
+                    let range: Range<Int> = .init(uncheckedBounds: (lower: offSet, upper: offSet + length - 1))
+                    let promise = self.request.eventLoop.makePromise(of: LargeFileUploadStatusModel.self)
+                    promise.completeWithTask {
+                        try await self.largeFilePutUpload(uploadUrl: uploadUrl, data: data, totalSize: number, range: range)
+                    }
+                    let info = promise.futureResult
+                    do {
+                        let chunkInfo = try info.wait()
+                        print("range:\(String(describing: chunkInfo.nextExpectedRanges))")
+                    } catch {
+                        print("error:\(error.localizedDescription)")
+                    }
+                }
+#else
+                autoreleasepool {
                     let offSet: Int = Int(file.offsetInFile)
                     let data = file.readData(ofLength: self.configuration.multipartPartSize)
                     length = data.count
                     
                     if length > 0 {
                         let range: Range<Int> = .init(uncheckedBounds: (lower: offSet, upper: offSet + length - 1))
-                        let info = self.largeFilePutUpload(uploadUrl: uploadUrl, data: data, totalSize: number, range: range)
+                        let promise = self.request.eventLoop.makePromise(of: LargeFileUploadStatusModel.self)
+                        promise.completeWithTask {
+                            try await self.largeFilePutUpload(uploadUrl: uploadUrl, data: data, totalSize: number, range: range)
+                        }
+                        let info = promise.futureResult
                         do {
                             let chunkInfo = try info.wait()
                             print("range:\(String(describing: chunkInfo.nextExpectedRanges))")
@@ -489,134 +490,127 @@ extension MsGraphFileDriveItemAPI {
                             print("error:\(error.localizedDescription)")
                         }
                     }
-                    #else
-                    autoreleasepool {
-                        let offSet: Int = Int(file.offsetInFile)
-                        let data = file.readData(ofLength: self.configuration.multipartPartSize)
-                        length = data.count
-                        
-                        if length > 0 {
-                            let range: Range<Int> = .init(uncheckedBounds: (lower: offSet, upper: offSet + length - 1))
-                            let info = self.largeFilePutUpload(uploadUrl: uploadUrl, data: data, totalSize: number, range: range)
-                            do {
-                                let chunkInfo = try info.wait()
-                                print("range:\(String(describing: chunkInfo.nextExpectedRanges))")
-                            } catch {
-                                print("error:\(error.localizedDescription)")
-                            }
-                        }
-                    }
-                    #endif
-                } while length > 0
-                // end
-                file.closeFile()
-                promise.succeed(())
-            }
-            return promise.futureResult.flatMap { () -> EventLoopFuture<DriveItemModel> in
-                return self.largeFileUploadComplete(uploadUrl: uploadUrl)
-            }
-        } catch  {
-            return request.eventLoop.makeFailedFuture(error)
+                }
+#endif
+            } while length > 0
+            // end
+            file.closeFile()
+            promise.succeed(())
         }
-        
+        return try await promise.futureResult.flatMap { () -> EventLoopFuture<DriveItemModel> in
+            let promise = self.request.eventLoop.makePromise(of: DriveItemModel.self)
+            promise.completeWithTask {
+                try await self.largeFileUploadComplete(uploadUrl: uploadUrl)
+            }
+            return promise.futureResult
+        }.get()
     }
     
     /// 续传
-    public func resumeLargeFileChunk(file path: String, uploadUrlString: String) -> EventLoopFuture<DriveItemModel> {
-        do {
-            let attributes = try FileManager.default.attributesOfItem(atPath: path)
-            guard let number = attributes[.size] as? Int else {
-                fatalError("fetch file size error")
-            }
-            guard let uploadUrl =  URL(string: uploadUrlString) else {
-                fatalError("upload url error")
-            }
-            
-            guard let file =  FileHandle(forReadingAtPath: path) else {
-                fatalError("read file error")
-            }
-            
-            let queue = DispatchQueue.init(label: "Serial queue")
-
-            let checkResult = self.checkLargeFileChunkStatus(uploadUrl: uploadUrlString)
-            return checkResult.flatMap { (res) -> EventLoopFuture<DriveItemModel> in
-                print("check-uploadUrl:\(String(describing: res.nextExpectedRanges))")
-                guard let checkRange = res.nextExpectedRanges?.first,
-                      let lower = checkRange.split(separator: "-").first,
-                      let lowerNumber = UInt64(String(lower)) else {
-                    fatalError("range error")
-                }
-                
-                file.seek(toFileOffset: lowerNumber)
-                
-                let promise = self.request.eventLoop.makePromise(of: Void.self)
-                queue.async {
-                    
-                    var count = 0
-                    var length = 0
-                    repeat {
-                        #if os(Linux)
-                        let offSet: Int = Int(file.offsetInFile)
-                        let data = file.readData(ofLength: self.configuration.multipartPartSize)
-                        length = data.count
-                        let range: Range<Int> = .init(uncheckedBounds: (lower: offSet, upper: offSet + length - 1))
-                        if length > 0 {
-                            let info = self.largeFilePutUpload(uploadUrl: uploadUrl, data: data, totalSize: number, range: range)
-                            do {
-                                let chunkInfo = try info.wait()
-                                print("count:\(count) range:\(String(describing: chunkInfo.nextExpectedRanges))")
-                                count = count + 1
-                            } catch {
-                                print("error:\(error.localizedDescription)")
-                            }
-                        }
-                        #else
-                        autoreleasepool {
-                            let offSet: Int = Int(file.offsetInFile)
-                            let data = file.readData(ofLength: self.configuration.multipartPartSize)
-                            length = data.count
-                            let range: Range<Int> = .init(uncheckedBounds: (lower: offSet, upper: offSet + length - 1))
-                            if length > 0 {
-                                let info = self.largeFilePutUpload(uploadUrl: uploadUrl, data: data, totalSize: number, range: range)
-                                do {
-                                    let chunkInfo = try info.wait()
-                                    print("count:\(count) range:\(String(describing: chunkInfo.nextExpectedRanges))")
-                                    count = count + 1
-                                } catch {
-                                    print("error:\(error.localizedDescription)")
-                                }
-                            }
-                        }
-                        #endif
-                    } while length > 0
-                    
-                    // end
-                    file.closeFile()
-                    promise.succeed(())
-                }
-                
-                return promise.futureResult.flatMap { () -> EventLoopFuture<DriveItemModel> in
-                    return self.largeFileUploadComplete(uploadUrl: uploadUrl)
-                }
-            }
-        } catch {
-            return request.eventLoop.makeFailedFuture(error)
+    public func resumeLargeFileChunk(file path: String, uploadUrlString: String) async throws -> DriveItemModel {
+        
+        let attributes = try FileManager.default.attributesOfItem(atPath: path)
+        guard let number = attributes[.size] as? Int else {
+            fatalError("fetch file size error")
         }
+        guard let uploadUrl =  URL(string: uploadUrlString) else {
+            fatalError("upload url error")
+        }
+        
+        guard let file =  FileHandle(forReadingAtPath: path) else {
+            fatalError("read file error")
+        }
+        
+        let queue = DispatchQueue.init(label: "Serial queue")
+        
+        let checkResult = try await self.checkLargeFileChunkStatus(uploadUrl: uploadUrlString)
+        let res = checkResult
+        
+        print("check-uploadUrl:\(String(describing: res.nextExpectedRanges))")
+        guard let checkRange = res.nextExpectedRanges?.first,
+              let lower = checkRange.split(separator: "-").first,
+              let lowerNumber = UInt64(String(lower)) else {
+            fatalError("range error")
+        }
+        
+        file.seek(toFileOffset: lowerNumber)
+        
+        let promise = self.request.eventLoop.makePromise(of: Void.self)
+        queue.async {
+            
+            var count = 0
+            var length = 0
+            repeat {
+#if os(Linux)
+                let offSet: Int = Int(file.offsetInFile)
+                let data = file.readData(ofLength: self.configuration.multipartPartSize)
+                length = data.count
+                let range: Range<Int> = .init(uncheckedBounds: (lower: offSet, upper: offSet + length - 1))
+                if length > 0 {
+                    let promise = self.request.eventLoop.makePromise(of: LargeFileUploadStatusModel.self)
+                    promise.completeWithTask {
+                        try await self.largeFilePutUpload(uploadUrl: uploadUrl, data: data, totalSize: number, range: range)
+                    }
+                    let info = promise.futureResult
+                    do {
+                        let chunkInfo = try info.wait()
+                        print("count:\(count) range:\(String(describing: chunkInfo.nextExpectedRanges))")
+                        count = count + 1
+                    } catch {
+                        print("error:\(error.localizedDescription)")
+                    }
+                }
+#else
+                autoreleasepool {
+                    let offSet: Int = Int(file.offsetInFile)
+                    let data = file.readData(ofLength: self.configuration.multipartPartSize)
+                    length = data.count
+                    let range: Range<Int> = .init(uncheckedBounds: (lower: offSet, upper: offSet + length - 1))
+                    if length > 0 {
+                        let promise = self.request.eventLoop.makePromise(of: LargeFileUploadStatusModel.self)
+                        promise.completeWithTask {
+                            try await self.largeFilePutUpload(uploadUrl: uploadUrl, data: data, totalSize: number, range: range)
+                        }
+                        let info = promise.futureResult
+                        do {
+                            let chunkInfo = try info.wait()
+                            print("count:\(count) range:\(String(describing: chunkInfo.nextExpectedRanges))")
+                            count = count + 1
+                        } catch {
+                            print("error:\(error.localizedDescription)")
+                        }
+                    }
+                }
+#endif
+            } while length > 0
+            
+            // end
+            file.closeFile()
+            promise.succeed(())
+        }
+        
+        return try await promise.futureResult.flatMap { () -> EventLoopFuture<DriveItemModel> in
+            let promise = self.request.eventLoop.makePromise(of: DriveItemModel.self)
+            promise.completeWithTask {
+                try await self.largeFileUploadComplete(uploadUrl: uploadUrl)
+            }
+            return promise.futureResult
+        }.get()
     }
     
     /// 取消上传
-    public func cancelLargeFileChunk(uploadUrlString: String) -> EventLoopFuture<MsGraphOneDriveAPIStatus> {
-        return request.send(method: .DELETE, path: uploadUrlString)
+    public func cancelLargeFileChunk(uploadUrlString: String) async throws -> MsGraphOneDriveAPIStatus {
+        return try await request.send(method: .DELETE, path: uploadUrlString)
     }
     
     fileprivate
-    func checkLargeFileChunkStatus(uploadUrl: String) -> EventLoopFuture<LargeFileUploadStatusModel> {
-        return request.send(method: .GET, path: uploadUrl)
+    func checkLargeFileChunkStatus(uploadUrl: String) async throws -> LargeFileUploadStatusModel {
+        return try await request.send(method: .GET, path: uploadUrl)
     }
     
     /// 单块的上传
     fileprivate
-    func largeFilePutUpload(uploadUrl: URL, data: Data, totalSize: Int, range: Range<Int>) -> EventLoopFuture<LargeFileUploadStatusModel> {
+    func largeFilePutUpload(uploadUrl: URL, data: Data, totalSize: Int, range: Range<Int>) async throws -> LargeFileUploadStatusModel {
         
         var headers: HTTPHeaders = [:]
         headers.add(name: "Content-Length", value: "\(totalSize)")
@@ -624,19 +618,20 @@ extension MsGraphFileDriveItemAPI {
         
         let progress: Float = Float(range.lowerBound) / Float(totalSize)
         print("progress:\(progress * 100)% total:\(totalSize) range:\(range)")
-        return request.send(method: .PUT, headers: headers, path: uploadUrl.absoluteString, body: .data(data))
+        return try await request.send(method: .PUT, headers: headers, path: uploadUrl.absoluteString, body: .bytes(.init(data: data)))
     }
+    
     /// 完成的请求
     fileprivate
-    func largeFileUploadComplete(uploadUrl: URL) -> EventLoopFuture<DriveItemModel> {
+    func largeFileUploadComplete(uploadUrl: URL) async throws -> DriveItemModel {
         
         var headers: HTTPHeaders = [:]
         headers.add(name: "Content-Length", value: "\(0)")
         
-        return request.send(method: .POST, headers: headers, path: uploadUrl.absoluteString)
+        return try await request.send(method: .POST, headers: headers, path: uploadUrl.absoluteString)
     }
 }
 
 public struct MsGraphOneDriveAPIStatus: MicrosoftAzureModel {
-
+    
 }

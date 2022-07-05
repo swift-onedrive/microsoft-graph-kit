@@ -28,56 +28,53 @@ class OneDriveRequest: MsGraphAPIRequest {
 //        self.responseDecoder.dateDecodingStrategy = .formatted(dateFormatter)
     }
     
-    public func send<MGM: MicrosoftAzureModel>(method: HTTPMethod, headers: HTTPHeaders = [:], path: String, query: String = "", body: HTTPClient.Body = .data(Data())) -> EventLoopFuture<MGM> {
-        return withToken { token in
-            return self._send(method: method, headers: headers, path: path, query: query, body: body, accessToken: token.access_token).flatMap { response in
-                do {
-                    if let info = try? JSONSerialization.jsonObject(with: response, options: .allowFragments) {
-                        print("info:\n\(info)")
-                    }
-                    let model = try self.responseDecoder.decode(MGM.self, from: response)
-                    return self.eventLoop.makeSucceededFuture(model)
-                } catch {
-                    return self.eventLoop.makeFailedFuture(error)
-                }
+    public func send<MGM: MicrosoftAzureModel>(method: HTTPMethod,
+                                               headers: HTTPHeaders = [:], path: String, query: String = "",
+                                               body: HTTPClientRequest.Body = .bytes(.init(data: Data()))) async throws -> MGM {
+        return try await withToken { token in
+            let responseData = try await self._send(method: method, headers: headers, path: path, query: query, body: body, accessToken: token.access_token)
+            if let info = try? JSONSerialization.jsonObject(with: responseData, options: .allowFragments) {
+                print("info:\n\(info)")
             }
+            let model = try self.responseDecoder.decode(MGM.self, from: responseData)
+            return model
         }
     }
     
-    private func _send(method: HTTPMethod, headers: HTTPHeaders, path: String, query: String, body: HTTPClient.Body, accessToken: String) -> EventLoopFuture<Data> {
+    private func _send(method: HTTPMethod, headers: HTTPHeaders, path: String, query: String, body: HTTPClientRequest.Body, accessToken: String) async throws -> Data {
         var _headers: HTTPHeaders = ["Authorization": "Bearer \(accessToken)",
                                      "Content-Type": "application/json"]
         headers.forEach { _headers.replaceOrAdd(name: $0.name, value: $0.value) }
 
-        do {
-            let request = try HTTPClient.Request(url: "\(path)", method: method, headers: _headers, body: body)
-            
-            return httpClient.execute(request: request, eventLoop: .delegate(on: self.eventLoop)).flatMap { response in
-                // If we get a 204 for example in the delete api call just return an empty body to decode.
-                if response.status == .noContent {
-                    return self.eventLoop.makeSucceededFuture("{}".data(using: .utf8)!)
-                }
+        var request = HTTPClientRequest(url: "\(path)")
+        request.method = method
+        request.headers = _headers
+        request.body = body
+        
+        let response = try await httpClient.execute(request, timeout: .seconds(30))
 
-                guard var byteBuffer = response.body else {
-                    fatalError("Response body from Graph is missing! This should never happen.")
-                }
-                let responseData = byteBuffer.readData(length: byteBuffer.readableBytes)!
-
-                guard (200...299).contains(response.status.code) else {
-                    let error: Error
-                    if let jsonError = try? self.responseDecoder.decode(OneDriveAPIError.self, from: responseData) {
-                        error = jsonError
-                    } else {
-                        let body = response.body?.getString(at: response.body?.readerIndex ?? 0, length: response.body?.readableBytes ?? 0) ?? ""
-                        error = OneDriveAPIError(error: OneDriveAPIErrorBody(errors: [], code: Int(response.status.code), message: body))
-                    }
-
-                    return self.eventLoop.makeFailedFuture(error)
-                }
-                return self.eventLoop.makeSucceededFuture(responseData)
-            }
-        } catch {
-            return self.eventLoop.makeFailedFuture(error)
+        // If we get a 204 for example in the delete api call just return an empty body to decode.
+        if response.status == .noContent {
+            return "{}".data(using: .utf8)!
         }
+
+        var byteBuffer = try await response.body.reduce(into: ByteBuffer()) { accumulatingBuffer, nextBuffer in
+            var nextBuffer = nextBuffer
+            accumulatingBuffer.writeBuffer(&nextBuffer)
+        }
+        let responseData = byteBuffer.readData(length: byteBuffer.readableBytes)!
+
+        guard (200...299).contains(response.status.code) else {
+            let error: Error
+            if let jsonError = try? self.responseDecoder.decode(OneDriveAPIError.self, from: responseData) {
+                error = jsonError
+            } else {
+                let body = byteBuffer.getString(at: byteBuffer.readerIndex , length: byteBuffer.readableBytes) ?? ""
+                error = OneDriveAPIError(error: OneDriveAPIErrorBody(errors: [], code: Int(response.status.code), message: body))
+            }
+
+            throw error
+        }
+        return responseData
     }
 }
